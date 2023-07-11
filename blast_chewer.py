@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+from pathlib import Path
 
 def parse_arguments():
     usage = "./blast_chewer.py"
@@ -16,4 +17,12 @@ def parse_arguments():
 if __name__ == "__main__":
     args = parse_arguments()
 
-# now it would be nice to validate the path to input file; we'll skip this step for now
+    # now we will validate the path to input file:
+    input_file = Path(args.input)
+    # print(type(input_file))   #here we can verify that we created an instance of the class '*Path', where we store the path to our input
+    # print(input_file.parts)
+    if input_file.is_file():
+        print(f"Input file taken from {input_file}")
+    else:
+        # TODO: change exception to more specific 
+        raise Exception (f"Input file {input_file} not valid.")
