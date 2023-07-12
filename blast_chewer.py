@@ -2,6 +2,7 @@
 
 import argparse
 from pathlib import Path
+import csv
 
 def parse_arguments():
     usage = "./blast_chewer.py"
@@ -13,16 +14,30 @@ def parse_arguments():
     parser.add_argument("-o", "--output_path", help="Path to output file")
     return parser.parse_args()
 
+def read_file(input_path):
+    with open(input_path, "r", encoding="utf-8") as infile:
+        # after opening the file, we want to read it as a csv table, thus we introduce a new "input file" variable for that
+        csv_file = csv.reader(infile, delimiter= "\t")
+        i = 1
+        for row in csv_file:
+            i += 1
+            if i > 3:
+                break 
+            print(row)
+
 
 if __name__ == "__main__":
     args = parse_arguments()
 
     # now we will validate the path to input file:
-    input_file = Path(args.input)
+    input_path = Path(args.input)
     # print(type(input_file))   #here we can verify that we created an instance of the class '*Path', where we store the path to our input
     # print(input_file.parts)
-    if input_file.is_file():
-        print(f"Input file taken from {input_file}")
+    if input_path.is_file():
+        print(f"Input file taken from {input_path}")
     else:
         # TODO: change exception to more specific 
-        raise Exception (f"Input file {input_file} not valid.")
+        raise Exception (f"Input file {input_path} not valid.")
+    
+    working_table = read_file(input_path)
+
