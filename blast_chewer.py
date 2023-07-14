@@ -2,7 +2,7 @@
 
 ###___BLAST-CHEWER___###
 # a first-ever Python script by marie.pazoutova@gmail.com from the Martin Kolisko lab
-# with a GREAT help of Petr Sedlacek https://github.com/trohat
+# with GREAT help of Petr Sedlacek https://github.com/trohat
 # and Serafim Nenarokov https://github.com/Seraff
 
 import argparse
@@ -13,24 +13,23 @@ def parse_arguments():
     usage = "./blast_chewer.py"
     description = ' \n \n \n"I will chew on your blast results to prepare a list of accessions for building phylogenetic tree."' + "\n\nThis script works with one txt input file that contains a table of blast hits for a given group of orthologous genes.\n "
     parser = argparse.ArgumentParser(usage, description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("-i", "--input", required = True, help = "Path to input file with blast results; txt file with space delimited table expected")
-    parser.add_argument("-e", "--evalue", help="E-value treshold for blast hits; default = 1e-1", default = "1e-1")
-    parser.add_argument("-n", "--nr_hits", help="Number of blast hits taken for a single ortholog; default = None", default = None)
+    parser.add_argument("-i", "--input", required=True, help="Path to input file with blast results; txt file with space delimited table expected")
+    parser.add_argument("-e", "--evalue", help="E-value treshold for blast hits; default = 1e-1", default="1e-1")
+    parser.add_argument("-n", "--nr_hits", help="Number of blast hits taken for a single ortholog; default = None", default=None)
     parser.add_argument("-o", "--output_path", help="Path to output file")
-    parser.add_argument("-t", "--test", action="store_true", help="Test")
+    parser.add_argument("-t", "--test", action="store_true", help="Just for test data")
     return parser.parse_args()
 
 def read_file(input_path, test=False):
     table = []
     delimiter="\t"
-    if test:
-        delimiter=" "
+    # if test:
+        # delimiter=" "
     with open(input_path, "r", encoding="utf-8") as infile:
         # after opening the file, we want to read it as a csv table, thus we introduce a new "input file" variable for that
         csv_file = csv.reader(infile, delimiter=delimiter)
         for row in csv_file:
             table.append(row)
-    print(table)
     return table
 
 # we only need some columns from the file, namely 1, 2, 3, 12, 13 (qseqid, sseqid, stitle, evalue, bitscore)
@@ -53,8 +52,10 @@ def parse_data(table, level=4, test=False):
         result.append((query_ID, NCBI_accession, taxonomy, evalue, bitscore))
     return result
 
-def rank_accession(data):
+def rank_accession(data, evalue):
     result = set()
+
+    # create table 1
     query_table = {}
     for row in data:
         query_ID = row[0]
@@ -64,7 +65,21 @@ def rank_accession(data):
             query_table[query_ID].append(row + (record_number, ))
         else:
             query_table[query_ID] = [row + (1, )]
+
+    print(query_table)  
+
+    # filter out low e-values
+    for query_ID_record in query_table.keys():
+        for hit in query_table[query_ID_record]:
+            if hit[2] < evalue:
+                query_table[query_ID_record].remove(hit)
+
     print(query_table)
+
+    # create table 2
+    for query_ID_record in query_table.keys():
+        for hit in query_table[query_ID_record]:
+            pass
 
     return result
 
@@ -92,9 +107,13 @@ if __name__ == "__main__":
 
     data = parse_data(data, test=test)
 
-    result = rank_accession(data)
+    evalue = args.evalue
+    if test:
+        evalue = 1
+
+    result = rank_accession(data, evalue)
 
     print_to_file(args.output_path, result)
-    
+      
 
 
