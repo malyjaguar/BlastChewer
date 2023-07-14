@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+###___BLAST-CHEWER___###
+# a first-ever Python script by marie.pazoutova@gmail.com from the Martin Kolisko lab
+# with a GREAT help of Petr Sedlacek https://github.com/trohat
+# and Serafim Nenarokov https://github.com/Seraff
+
 import argparse
 from pathlib import Path
 import csv
@@ -12,36 +17,59 @@ def parse_arguments():
     parser.add_argument("-e", "--evalue", help="E-value treshold for blast hits; default = 1e-1", default = "1e-1")
     parser.add_argument("-n", "--nr_hits", help="Number of blast hits taken for a single ortholog; default = None", default = None)
     parser.add_argument("-o", "--output_path", help="Path to output file")
+    parser.add_argument("-t", "--test", action="store_true", help="Test")
     return parser.parse_args()
 
-def read_file(input_path):
+def read_file(input_path, test=False):
     table = []
+    delimiter="\t"
+    if test:
+        delimiter=" "
     with open(input_path, "r", encoding="utf-8") as infile:
         # after opening the file, we want to read it as a csv table, thus we introduce a new "input file" variable for that
-        csv_file = csv.reader(infile, delimiter= "\t")
+        csv_file = csv.reader(infile, delimiter=delimiter)
         for row in csv_file:
             table.append(row)
-        return table
+    print(table)
+    return table
 
 # we only need some columns from the file, namely 1, 2, 3, 12, 13 (qseqid, sseqid, stitle, evalue, bitscore)
 # plus we want to a) turn num values into float and b) extract only one hieararchical level from taxonomy (see parameter level=4)
-def parse_data(table, level=4):
+def parse_data(table, level=4, test=False):
+    print(f"{test=}")
     result = []
     for row in table:
-        qseqid = row[0]
-        sseqid = row[1]
+        query_ID = row[0]
+        NCBI_accession = row[1]
         taxonomy = row[2]
-        taxonomy = taxonomy[taxonomy.index(" ")+1:].split("__")
-        try:
-            taxonomy = taxonomy[level-1]
-        except:
-            taxonomy = taxonomy[0]
-        if taxonomy != "Diplomonadida":
-            print(taxonomy, end=" ") # TODO: delete this line
+        if not test:
+            taxonomy = taxonomy[taxonomy.find(" ")+1:].split("__")
+            try:
+                taxonomy = taxonomy[level-1]
+            except:
+                taxonomy = taxonomy[0]
         evalue = float(row[-2])
         bitscore = float(row[-1])
-        result.append([qseqid, sseqid, taxonomy, evalue, bitscore])
+        result.append((query_ID, NCBI_accession, taxonomy, evalue, bitscore))
     return result
+
+def rank_accession(data):
+    result = set()
+    query_table = {}
+    for row in data:
+        query_ID = row[0]
+        row = row[1:]
+        if query_ID in query_table:
+            record_number = len(query_table[query_ID]) + 1
+            query_table[query_ID].append(row + (record_number, ))
+        else:
+            query_table[query_ID] = [row + (1, )]
+    print(query_table)
+
+    return result
+
+def print_to_file(file, data):
+    pass
 
 if __name__ == "__main__":
     args = parse_arguments()
@@ -56,9 +84,17 @@ if __name__ == "__main__":
         # TODO: change exception to more specific 
         raise Exception (f"Input file {input_path} not valid.")
     
-    data = read_file(input_path)
+    test=False
+    if args.test:
+        test=True
 
-    data = parse_data(data)
+    data = read_file(input_path, test=test)
 
-    # print(data)
+    data = parse_data(data, test=test)
+
+    result = rank_accession(data)
+
+    print_to_file(args.output_path, result)
+    
+
 
