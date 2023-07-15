@@ -15,44 +15,54 @@ def parse_arguments():
     parser = argparse.ArgumentParser(usage, description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-i", "--input", required=True, help="Path to input file with blast results; txt file with space delimited table expected")
     parser.add_argument("-e", "--evalue", help="E-value treshold for blast hits; default = 1e-1", default="1e-1")
-    parser.add_argument("-n", "--nr_hits", help="Number of blast hits taken for a single ortholog; default = None", default=None)
+    # TODO: decide whether you want to apply the following argument ---> add what is needed in the code
+    # parser.add_argument("-n", "--nr_hits", help="Number of blast hits taken for a single ortholog; default = None", default=None) 
     parser.add_argument("-o", "--output_path", help="Path to output file")
     parser.add_argument("-t", "--test", action="store_true", help="Just for test data")
     return parser.parse_args()
 
 def read_file(input_path, test=False):
     table = []
-    delimiter="\t"
-    # if test:
-        # delimiter=" "
     with open(input_path, "r", encoding="utf-8") as infile:
         # after opening the file, we want to read it as a csv table, thus we introduce a new "input file" variable for that
-        csv_file = csv.reader(infile, delimiter=delimiter)
+        csv_file = csv.reader(infile, delimiter="\t")
         for row in csv_file:
             table.append(row)
     return table
 
 # we only need some columns from the file, namely 1, 2, 3, 12, 13 (qseqid, sseqid, stitle, evalue, bitscore)
 # plus we want to a) turn num values into float and b) extract only one hieararchical level from taxonomy (see parameter level=4)
-def parse_data(table, level=4, test=False):
-    print(f"{test=}")
-    result = []
+def parse_data(table, level=3, test=False):
+    working_table = []
     for row in table:
         query_ID = row[0]
-        NCBI_accession = row[1]
+        accession_nr = row[1]
         taxonomy = row[2]
-        if not test:
-            taxonomy = taxonomy[taxonomy.find(" ")+1:].split("__")
-            try:
-                taxonomy = taxonomy[level-1]
-            except:
-                taxonomy = taxonomy[0]
+        taxonomy = taxonomy[taxonomy.find(" ")+1:].split("__")
+        try:
+            taxonomy = taxonomy[level-1]
+        except:
+            taxonomy = taxonomy[0]
         evalue = float(row[-2])
         bitscore = float(row[-1])
-        result.append((query_ID, NCBI_accession, taxonomy, evalue, bitscore))
-    return result
+        working_table.append((query_ID, accession_nr, taxonomy, evalue, bitscore)) # adding items into list in a form of tuple
+    return working_table
 
+def filter_out_low_evalues(data, evalue_treshold, test=False):
+    # TODO: try rewriting with list comprehension
+    filtered = []
+    evalue_treshold = float(evalue_treshold)
+    if test:
+        evalue_treshold = .8   
+    for row in data:
+        if row[3] > evalue_treshold:
+            filtered.append(row)
+    print(f"Erased {len(data)-len(filtered)} records with too low e-value")        
+    return filtered    
+
+##### DAL 
 def rank_accession(data, evalue):
+
     result = set()
 
     # create table 1
@@ -68,13 +78,8 @@ def rank_accession(data, evalue):
 
     print(query_table)  
 
-    # filter out low e-values
-    for query_ID_record in query_table.keys():
-        for hit in query_table[query_ID_record]:
-            if hit[2] < evalue:
-                query_table[query_ID_record].remove(hit)
 
-    print(query_table)
+
 
     # create table 2
     for query_ID_record in query_table.keys():
@@ -107,13 +112,13 @@ if __name__ == "__main__":
 
     data = parse_data(data, test=test)
 
-    evalue = args.evalue
-    if test:
-        evalue = 1
+    # TODO: ERASE THIS NOTE here I will probably call the evalue filtering
+    data = filter_out_low_evalues(data, args.evalue, test)
+    
 
-    result = rank_accession(data, evalue)
+    # result = rank_accession(data, evalue)
 
-    print_to_file(args.output_path, result)
+    # print_to_file(args.output_path, result)
       
 
 
