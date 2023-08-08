@@ -9,6 +9,23 @@ import argparse
 from pathlib import Path
 import csv
 
+
+class BlastHit():
+    blast_fields = ['qseqid', 'sseqid', 'pident', 'length','matches', 'gaps', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore', 'taxonomy']
+    
+    def __init__(self, raw_list):
+
+        self.data = dict([[e, raw_list[i]] for i, e in enumerate(BlastHit.blast_fields)])
+
+        # alternatively this code could be written like this:
+        """
+        elements = []
+        for i, key in BlastHit.blast_fields:
+            value = raw_list[i]
+            elements.append([key, value])
+        self.data = dict(elements)
+        """
+
 def parse_arguments():
     usage = "./blast_chewer.py"
     description = ' \n \n \n"I will chew on your blast results to prepare a list of accessions for building phylogenetic tree."' + "\n\nThis script works with one txt input file that contains a table of blast hits for a given group of orthologous genes.\n "
@@ -18,10 +35,10 @@ def parse_arguments():
     # TODO: decide whether you want to apply the following argument ---> add what is needed in the code
     # parser.add_argument("-n", "--nr_hits", help="Number of blast hits taken for a single ortholog; default = None", default=None) 
     parser.add_argument("-o", "--output_path", help="Path to output file")
-    parser.add_argument("-t", "--test", action="store_true", help="Just for test data")
     return parser.parse_args()
 
-def read_file(input_path, test=False):
+
+def read_file(input_path):
     initial_table = []
     with open(input_path, "r", encoding="utf-8") as infile:
         # after opening the file, we want to read it as a csv table, thus we introduce a new "input file" variable for that
@@ -33,7 +50,7 @@ def read_file(input_path, test=False):
 
 # we only need some columns from the file, namely 1, 2, 3, 12, 13 (qseqid, sseqid, stitle, evalue, bitscore)
 # plus we want to a) turn num values into float and b) extract only one hieararchical level from taxonomy (see parameter level=3)
-def parse_data(table, level=3, test=False):
+def parse_data(table, level=3):
     working_table = []
     for row in table:
         query_ID = row[0]
@@ -49,45 +66,17 @@ def parse_data(table, level=3, test=False):
         working_table.append((query_ID, accession_nr, taxonomy, evalue, bitscore)) # adding items into list in a form of tuple
     return working_table
 
-def filter_out_low_evalues(data, evalue_treshold, test=False):
+
+def filter_out_low_evalues(data, evalue_treshold):
     # TODO: try rewriting with list comprehension
     filtered = []
     evalue_treshold = float(evalue_treshold)
-    if test:
-        evalue_treshold = .8   
     for row in data:
         if row[3] < evalue_treshold:
             filtered.append(row)
     print(f"Erased {len(data)-len(filtered)} records with too low e-value")        
     return filtered    
 
-##### DAL 
-def rank_accession(data, evalue):
-
-    result = set()
-
-    # create table 1
-    query_table = {}
-    for row in data:
-        query_ID = row[0]
-        row = row[1:]
-        if query_ID in query_table:
-            record_number = len(query_table[query_ID]) + 1
-            query_table[query_ID].append(row + (record_number, ))
-        else:
-            query_table[query_ID] = [row + (1, )]
-
-    print(query_table)  
-
-    # create table 2
-    for query_ID_record in query_table.keys():
-        for hit in query_table[query_ID_record]:
-            pass
-
-    return result
-
-def print_to_file(file, data):
-    pass
 
 if __name__ == "__main__":
     args = parse_arguments()
@@ -102,16 +91,18 @@ if __name__ == "__main__":
         # TODO: change exception to more specific 
         raise Exception (f"Input file {input_path} not valid.")
     
-    test=False
-    if args.test:
-        test=True
 
-    data = read_file(input_path, test)
+    """     
+    data = read_file(input_path)
 
-    data = parse_data(data, test)
+    data = parse_data(data)
 
-    data = filter_out_low_evalues(data, args.evalue, test)
+    data = filter_out_low_evalues(data, args.evalue) 
+    """
     
+    hit = BlastHit([63, 54, 55, 27, 93, 28, 80, 33, 58, 88, 10, 80, 81])
+    import ipdb; ipdb.set_trace()
+
 
     # result = rank_accession(data, evalue)
 
