@@ -21,7 +21,7 @@ def read_file(input_path):
             table.append(row)
         return table
 
-def parse_data_to_set(table, level=4):  # "programátoři počítají od nuly, ale biologové od jedničky..." takže pokud chci úroveň 4, píšu 4 a níže to ošetřím 
+def parse_data_to_set(table, level=3):  # "programátoři počítají od nuly, ale biologové od jedničky..." takže pokud chci úroveň 4, píšu 4 a níže to ošetřím 
     result = set()
     for row in table:
         taxonomy = row[2]   # here I choose column three from our blast results table (= stitle), saving it in a new string variable 

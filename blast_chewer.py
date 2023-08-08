@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 ###___BLAST-CHEWER___###
-# a first-ever Python script by marie.pazoutova@gmail.com from the Martin Kolisko lab
+# a first-ever Python script by marie.pazoutova@gmail.com from the Martin Kolisko lab https://github.com/kolecko007
 # with GREAT help of Petr Sedlacek https://github.com/trohat
 # and Serafim Nenarokov https://github.com/Seraff
 
@@ -13,7 +13,7 @@ def parse_arguments():
     usage = "./blast_chewer.py"
     description = ' \n \n \n"I will chew on your blast results to prepare a list of accessions for building phylogenetic tree."' + "\n\nThis script works with one txt input file that contains a table of blast hits for a given group of orthologous genes.\n "
     parser = argparse.ArgumentParser(usage, description=description, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("-i", "--input", required=True, help="Path to input file with blast results; txt file with space delimited table expected")
+    parser.add_argument("-i", "--input", required=True, help="Path to input file with blast results; txt file with tab delimited table expected")
     parser.add_argument("-e", "--evalue", help="E-value treshold for blast hits; default = 1e-1", default="1e-1")
     # TODO: decide whether you want to apply the following argument ---> add what is needed in the code
     # parser.add_argument("-n", "--nr_hits", help="Number of blast hits taken for a single ortholog; default = None", default=None) 
@@ -22,16 +22,17 @@ def parse_arguments():
     return parser.parse_args()
 
 def read_file(input_path, test=False):
-    table = []
+    initial_table = []
     with open(input_path, "r", encoding="utf-8") as infile:
         # after opening the file, we want to read it as a csv table, thus we introduce a new "input file" variable for that
         csv_file = csv.reader(infile, delimiter="\t")
         for row in csv_file:
-            table.append(row)
-    return table
+            initial_table.append(row)
+    return initial_table
+    # now I have a list called "initial_table", where each item of the list corresponds to one row in the original result table
 
 # we only need some columns from the file, namely 1, 2, 3, 12, 13 (qseqid, sseqid, stitle, evalue, bitscore)
-# plus we want to a) turn num values into float and b) extract only one hieararchical level from taxonomy (see parameter level=4)
+# plus we want to a) turn num values into float and b) extract only one hieararchical level from taxonomy (see parameter level=3)
 def parse_data(table, level=3, test=False):
     working_table = []
     for row in table:
@@ -55,7 +56,7 @@ def filter_out_low_evalues(data, evalue_treshold, test=False):
     if test:
         evalue_treshold = .8   
     for row in data:
-        if row[3] > evalue_treshold:
+        if row[3] < evalue_treshold:
             filtered.append(row)
     print(f"Erased {len(data)-len(filtered)} records with too low e-value")        
     return filtered    
@@ -77,9 +78,6 @@ def rank_accession(data, evalue):
             query_table[query_ID] = [row + (1, )]
 
     print(query_table)  
-
-
-
 
     # create table 2
     for query_ID_record in query_table.keys():
@@ -108,11 +106,10 @@ if __name__ == "__main__":
     if args.test:
         test=True
 
-    data = read_file(input_path, test=test)
+    data = read_file(input_path, test)
 
-    data = parse_data(data, test=test)
+    data = parse_data(data, test)
 
-    # TODO: ERASE THIS NOTE here I will probably call the evalue filtering
     data = filter_out_low_evalues(data, args.evalue, test)
     
 
