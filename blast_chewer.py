@@ -11,13 +11,14 @@ import csv
 
 
 class BlastHit():
-    blast_fields = ['qseqid', 'sseqid', 'pident', 'length','matches', 'gaps', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore', 'taxonomy']
+    blast_fields = ['qseqid', 'sseqid', 'taxonomy', 'pident', 'length','matches', 'gaps', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore']
     
     def __init__(self, raw_list):
 
         self.data = dict([[e, raw_list[i]] for i, e in enumerate(BlastHit.blast_fields)])
 
         # alternatively this code could be written like this:
+        # TODO erase this; Marie Q: it works like this even with enumerate?? 
         """
         elements = []
         for i, key in BlastHit.blast_fields:
