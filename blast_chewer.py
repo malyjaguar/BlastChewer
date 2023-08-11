@@ -7,6 +7,7 @@
 
 import argparse
 from pathlib import Path
+import pandas as pd
 import csv
 
 
@@ -26,6 +27,11 @@ class BlastHit():
             elements.append([key, value])
         self.data = dict(elements)
         """
+
+    def clean_taxonomy():
+        pass
+
+    
 
 def parse_arguments():
     usage = "./blast_chewer.py"
