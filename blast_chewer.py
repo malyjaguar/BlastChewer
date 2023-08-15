@@ -8,30 +8,7 @@
 import argparse
 from pathlib import Path
 import pandas as pd
-import csv
 
-
-class BlastHit():
-    blast_fields = ['qseqid', 'sseqid', 'taxonomy', 'pident', 'length','matches', 'gaps', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore']
-    
-    def __init__(self, raw_list):
-
-        self.data = dict([[e, raw_list[i]] for i, e in enumerate(BlastHit.blast_fields)])
-
-        # alternatively this code could be written like this:
-        # TODO erase this; Marie Q: it works like this even with enumerate?? 
-        """
-        elements = []
-        for i, key in BlastHit.blast_fields:
-            value = raw_list[i]
-            elements.append([key, value])
-        self.data = dict(elements)
-        """
-
-    def clean_taxonomy():
-        pass
-
-    
 
 def parse_arguments():
     usage = "./blast_chewer.py"
@@ -45,75 +22,50 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def read_file(input_path):
-    initial_table = []
-    with open(input_path, "r", encoding="utf-8") as infile:
-        # after opening the file, we want to read it as a csv table, thus we introduce a new "input file" variable for that
-        csv_file = csv.reader(infile, delimiter="\t")
-        for row in csv_file:
-            initial_table.append(row)
-    return initial_table
-    # now I have a list called "initial_table", where each item of the list corresponds to one row in the original result table
-
-# we only need some columns from the file, namely 1, 2, 3, 12, 13 (qseqid, sseqid, stitle, evalue, bitscore)
-# plus we want to a) turn num values into float and b) extract only one hieararchical level from taxonomy (see parameter level=3)
-def parse_data(table, level=3):
-    working_table = []
-    for row in table:
-        query_ID = row[0]
-        accession_nr = row[1]
-        taxonomy = row[2]
-        taxonomy = taxonomy[taxonomy.find(" ")+1:].split("__")
-        try:
-            taxonomy = taxonomy[level-1]
-        except:
-            taxonomy = taxonomy[0]
-        evalue = float(row[-2])
-        bitscore = float(row[-1])
-        working_table.append((query_ID, accession_nr, taxonomy, evalue, bitscore)) # adding items into list in a form of tuple
-    return working_table
+def validate_input_path(path_to_file):
+    if Path(path_to_file).is_file():
+        print(f"Input file taken from {path_to_file}")
+    else:
+        # TODO: change exception to more specific 
+        raise Exception (f"Input file {path_to_file} not valid.")
 
 
-def filter_out_low_evalues(data, evalue_treshold):
-    # TODO: try rewriting with list comprehension
-    filtered = []
-    evalue_treshold = float(evalue_treshold)
-    for row in data:
-        if row[3] < evalue_treshold:
-            filtered.append(row)
-    print(f"Erased {len(data)-len(filtered)} records with too low e-value")        
-    return filtered    
+def parse_blast_data(path_to_file):
+    names = ['qseqid', 'sseqid', 'taxonomy', 'pident', 'length', 'matches', 'gaps', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore']
+    data = pd.read_csv(path_to_file, sep = "\t", names = names) 
+    # Here we could remove accession numbers from the taxonomy column like this:
+    # data['taxonomy'] = data['taxonomy'].str.split(' ', n=1).str[1] 
+    # But Serafim suggests to do this within the class BlastHit, as it is ___it's___ responsability (-> cleaner code)
+    grouped_data = data.sort_values('evalue').groupby(['qseqid', 'sseqid']).first().reset_index() # beware, this line shuffled the overall order of data
+    # alternatively, if one doesn't wish to shuffle the lines, use the following code:
+    """
+    idx = data.groupby(['qseqid', 'sseqid'])['evalue'].transform(min) == data['evalue']
+    grouped_data = data[idx]
+    """
+    raw_lists = grouped_data.values.tolist()
+    return raw_lists
 
+
+class BlastHit():
+    blast_fields = ['qseqid', 'sseqid', 'taxonomy', 'pident', 'length', 'matches', 'gaps', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore']
+    float_fields = ('pident', 'evalue')
+    int_fields = ('length', 'matches', 'gaps', 'qstart', 'qend', 'sstart', 'send', 'bitscore')
+
+    def __init__(self, raw_list):
+        self.data = dict([[e, raw_list[i]] for i, e in enumerate(BlastHit.blast_fields)])
+
+        for key, value in self.data.items():
+            if key in BlastHit.float_fields:
+                self.data[key] = float(value)
+            elif key in BlastHit.int_fields:
+                self.data[key] = int(value)
+                   
 
 if __name__ == "__main__":
     args = parse_arguments()
+    validate_input_path(args.input)
 
-    # now we will validate the path to input file:
-    input_path = Path(args.input)
-    # print(type(input_file))   #here we can verify that we created an instance of the class '*Path', where we store the path to our input
-    # print(input_file.parts)
-    if input_path.is_file():
-        print(f"Input file taken from {input_path}")
-    else:
-        # TODO: change exception to more specific 
-        raise Exception (f"Input file {input_path} not valid.")
+    raw_lists = parse_blast_data(args.input)
+    blast_hits = [BlastHit(list) for list in raw_lists]
     
-
-    """     
-    data = read_file(input_path)
-
-    data = parse_data(data)
-
-    data = filter_out_low_evalues(data, args.evalue) 
-    """
-    
-    hit = BlastHit([63, 54, 55, 27, 93, 28, 80, 33, 58, 88, 10, 80, 81])
-    import ipdb; ipdb.set_trace()
-
-
-    # result = rank_accession(data, evalue)
-
-    # print_to_file(args.output_path, result)
-      
-
-
+    # import ipdb; ipdb.set_trace()

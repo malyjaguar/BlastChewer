@@ -10,7 +10,7 @@ def blast_parser(blast):
         # For Martin: here taxonomy was at the end, but in the data it shows as column 3, so we shifted the titles accordingly
         data = pd.read_csv(blast, sep = "\t", names = ['qseqid', 'sseqid', 'taxonomy', 'pident', 'length','matches', 'gaps', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore']) 
 
-        df = pd.DataFrame(data)
+        df = pd.DataFrame(data) # this was actually not necessary, as the .read_csv function already turns the input into a DataFrame 
         print(df.head())
 
         # groupby specific columns and get the hit with the better e-value
@@ -18,6 +18,7 @@ def blast_parser(blast):
         idx = df.groupby(['qseqid', 'sseqid'])['evalue'].transform(min) == df['evalue'] # martine, tady jsi mel 'max' a ono bylo potreba 'min' :-)
         df2 = df[idx]
         df2.to_csv('%s_single_aln.txt' % (sys.argv[1]), sep='\t')
+
 
 
 blast_parser(sys.argv[1])
