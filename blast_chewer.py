@@ -47,7 +47,7 @@ def parse_blast_data(path_to_file):
 
 
 class BlastHit():
-    blast_fields = ['qseqid', 'sseqid', 'taxonomy', 'pident', 'length', 'matches', 'gaps', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore']
+    blast_fields = ('qseqid', 'sseqid', 'taxonomy', 'pident', 'length', 'matches', 'gaps', 'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore')
     float_fields = ('pident', 'evalue')
     int_fields = ('length', 'matches', 'gaps', 'qstart', 'qend', 'sstart', 'send', 'bitscore')
 
@@ -59,7 +59,15 @@ class BlastHit():
                 self.data[key] = float(value)
             elif key in BlastHit.int_fields:
                 self.data[key] = int(value)
+
+        self.clean_taxonomy()        
+        # print(blast_hits[:10].data['taxonomy'])
+
+    def __repr__(self):
+        return f"BlastHit(qseqid={self.data['qseqid'][:30]}... sseqid={self.data['sseqid']})"
                    
+    def clean_taxonomy(self):
+        self.data['taxonomy'] = self.data['taxonomy'].split(' ', 1)[1] 
 
 if __name__ == "__main__":
     args = parse_arguments()
@@ -67,5 +75,5 @@ if __name__ == "__main__":
 
     raw_lists = parse_blast_data(args.input)
     blast_hits = [BlastHit(list) for list in raw_lists]
+    import ipdb; ipdb.set_trace()
     
-    # import ipdb; ipdb.set_trace()
