@@ -69,11 +69,21 @@ class BlastHit():
     def clean_taxonomy(self):
         self.data['taxonomy'] = self.data['taxonomy'].split(' ', 1)[1] 
 
+"""
+def refine_taxonomy(blast_hits):  
+    for hit in blast_hits:
+        taxonomy = hit.data['taxonomy']
+        taxonomy_3rd_level = taxonomy.split('__')[2] 
+"""        
+
 if __name__ == "__main__":
     args = parse_arguments()
     validate_input_path(args.input)
 
     raw_lists = parse_blast_data(args.input)
     blast_hits = [BlastHit(list) for list in raw_lists]
-    import ipdb; ipdb.set_trace()
+    
+ 
+
+    # import ipdb; ipdb.set_trace()
     
