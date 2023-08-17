@@ -8,7 +8,7 @@
 import argparse
 from pathlib import Path
 import pandas as pd
-
+from pprint import pprint
 
 def parse_arguments():
     usage = "./blast_chewer.py"
@@ -65,6 +65,12 @@ class BlastHit():
 
     def __repr__(self):
         return f"BlastHit(qseqid={self.data['qseqid'][:30]}... sseqid={self.data['sseqid']})"
+
+    def accession(self):
+        return self.data['sseqid']
+    
+    def taxonomy(self):
+        return self.data['taxonomy']
                    
     def clean_taxonomy(self):
         self.data['taxonomy'] = self.data['taxonomy'].split(' ', 1)[1] 
@@ -76,14 +82,76 @@ def refine_taxonomy(blast_hits):
         taxonomy_3rd_level = taxonomy.split('__')[2] 
 """        
 
+"""
+def parse_data_to_dict(blast_hits):
+    dict_of_accessions = {}
+    for hit in blast_hits:
+        accession = hit.data['sseqid']
+       # now I somehow need to create this:   dict_of_accessions[accession].append(hit.data['qseqid'], hit.data['bitscore'], hit.data['taxonomy'])
+    return dict_of_accessions
+"""         
+
+def pull_accessions_taxonwise(inputfile, sorted_list, max_tax_per_group=3):
+    acc_selection = []
+    n = 0
+
+    with open(inputfile) as f:
+        for line in f:
+            line = line.strip()
+
+            for tax_dict in sorted_list:
+                if n < max_tax_per_group:
+                    if line.lower() in tax_dict["taxonomy"].lower():
+                        acc_selection.append(tax_dict)
+                        n += 1
+
+    return acc_selection
+
+
 if __name__ == "__main__":
     args = parse_arguments()
     validate_input_path(args.input)
 
     raw_lists = parse_blast_data(args.input)
     blast_hits = [BlastHit(list) for list in raw_lists]
+
+    hits_by_acc = {}
+
+    for hit in blast_hits:
+        acc = hit.data['sseqid']
+
+        if acc not in hits_by_acc:
+            hits_by_acc[acc] = []
+        
+        hits_by_acc[acc].append(hit)
+
+    # result is { 'acc_number_1': [<hit_1>, <hit_2>], 'acc_number_2': [<hit_3>, ...], ... }
+
+    hit_list = list(hits_by_acc.values())
+
+    def condition(element):
+        length = len(element)
+        mean_bitscore = sum([e.data['bitscore'] for e in element])/length
+        return (length, mean_bitscore)
     
+    hit_list.sort(key=condition, reverse=True)
+
+    taxonomy = [{"accession": e[0].accession(), "taxonomy": e[0].taxonomy()} for e in hit_list]
+    filtered = pull_accessions_taxonwise("taxon_list_test.txt", taxonomy)
+    pprint(filtered)
+
+    with open('test_output.txt', "w") as out_f:
+        for tax_dict in filtered:
+            out_f.write(f"{tax_dict['accession']}\n") 
+    
+     # result is [[<hit_1>, <hit_2>], [<hit_3>, ...], ...
+     # 
+     # Sort it by some parameters
+
+    # dict_of_accessions = parse_data_to_dict(blast_hits)
+    # here we created a list of objects of class BlastHit
+    # each having an atribute 'data' where one row of blast hits is stored as dictionary
  
 
-    # import ipdb; ipdb.set_trace()
     
+    # import ipdb; ipdb.set_trace()
